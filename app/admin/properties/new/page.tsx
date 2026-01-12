@@ -37,13 +37,13 @@ export default function AdminAddPropertyPage() {
         fetchUsers({ role: "AGENT" });
     }, [fetchUsers]);
 
+    // Filter implementation
+    const search = agentSearch;
+
     const filteredAgents = users.filter(u =>
         u.fullName.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())
     );
-
-    // Filter implementation
-    const search = agentSearch;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -208,8 +208,8 @@ export default function AdminAddPropertyPage() {
                                         key={agent.id}
                                         onClick={() => setFormData({ ...formData, agentId: agent.id })}
                                         className={`p-4 rounded-[22px] border-4 transition-all duration-500 cursor-pointer flex items-center gap-4 ${formData.agentId === agent.id
-                                                ? "bg-primary border-primary text-black scale-[1.05]"
-                                                : "bg-white/5 border-transparent hover:bg-white/10"
+                                            ? "bg-primary border-primary text-black scale-[1.05]"
+                                            : "bg-white/5 border-transparent hover:bg-white/10"
                                             }`}
                                     >
                                         <div className={`w-12 h-12 rounded-xl relative overflow-hidden flex-shrink-0 shadow-lg ${formData.agentId === agent.id ? "bg-black/10" : "bg-white/10"}`}>
