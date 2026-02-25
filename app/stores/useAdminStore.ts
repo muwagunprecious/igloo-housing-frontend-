@@ -67,6 +67,7 @@ interface AdminStore {
     blockUser: (id: string, reason: string) => Promise<boolean>;
     unblockUser: (id: string) => Promise<boolean>;
     verifyAgent: (id: string) => Promise<boolean>;
+    rejectAgent: (id: string, reason?: string) => Promise<boolean>;
 }
 
 export const useAdminStore = create<AdminStore>((set) => ({
@@ -177,6 +178,21 @@ export const useAdminStore = create<AdminStore>((set) => ({
             await api.put(`/admin/agents/verify/${id}`);
             set((state) => ({
                 users: state.users.map(u => u.id === id ? { ...u, isVerified: true } : u),
+                isLoading: false
+            }));
+            return true;
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || error.message, isLoading: false });
+            return false;
+        }
+    },
+
+    rejectAgent: async (id: string, reason = 'Application rejected by admin') => {
+        set({ isLoading: true, error: null });
+        try {
+            await api.put(`/admin/agents/reject/${id}`, { reason });
+            set((state) => ({
+                users: state.users.filter(u => u.id !== id),
                 isLoading: false
             }));
             return true;

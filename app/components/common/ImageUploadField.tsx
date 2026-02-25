@@ -18,15 +18,18 @@ export default function ImageUploadField({ images, onImagesChange, maxImages = 1
         if (!files) return;
 
         const validFiles = Array.from(files).filter((file) => {
-            const isValidType = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type);
-            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
+            const isValidType = [
+                'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+                'video/mp4', 'video/webm', 'video/ogg'
+            ].includes(file.type);
+            const isValidSize = file.size <= 20 * 1024 * 1024; // 20MB max for video
 
             if (!isValidType) {
-                alert(`${file.name}: Only JPG, PNG, and WebP images are allowed`);
+                alert(`${file.name}: Only JPG, PNG, WebP, MP4, WebM, and OGG are allowed`);
                 return false;
             }
             if (!isValidSize) {
-                alert(`${file.name}: File size must be less than 5MB`);
+                alert(`${file.name}: File size must be less than 20MB`);
                 return false;
             }
             return true;
@@ -36,7 +39,7 @@ export default function ImageUploadField({ images, onImagesChange, maxImages = 1
         const filesToAdd = validFiles.slice(0, remainingSlots);
 
         if (filesToAdd.length < validFiles.length) {
-            alert(`Maximum ${maxImages} images allowed. Only first ${remainingSlots} images will be added.`);
+            alert(`Maximum ${maxImages} files allowed. Only first ${remainingSlots} files will be added.`);
         }
 
         onImagesChange([...images, ...filesToAdd]);
@@ -79,7 +82,7 @@ export default function ImageUploadField({ images, onImagesChange, maxImages = 1
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    accept="image/*,video/mp4,video/webm,video/ogg"
                     multiple
                     onChange={(e) => handleFiles(e.target.files)}
                     className="hidden"
@@ -87,10 +90,10 @@ export default function ImageUploadField({ images, onImagesChange, maxImages = 1
 
                 <Upload className="mx-auto mb-4 text-gray-400" size={48} />
                 <p className="text-gray-600 mb-2 font-medium">
-                    Drag and drop images here, or click to select
+                    Drag and drop files here, or click to select
                 </p>
                 <p className="text-sm text-gray-400 mb-4">
-                    JPG, PNG or WebP (Max 5MB per image, up to {maxImages} images)
+                    Images or Videos (Max 20MB, up to {maxImages} files)
                 </p>
                 <button
                     type="button"
@@ -98,7 +101,7 @@ export default function ImageUploadField({ images, onImagesChange, maxImages = 1
                     className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition"
                     disabled={images.length >= maxImages}
                 >
-                    {images.length >= maxImages ? `Maximum ${maxImages} images` : 'Choose Files'}
+                    {images.length >= maxImages ? `Maximum ${maxImages} files` : 'Choose Files'}
                 </button>
             </div>
 
@@ -107,19 +110,26 @@ export default function ImageUploadField({ images, onImagesChange, maxImages = 1
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {images.map((file, index) => (
                         <div key={index} className="relative group">
-                            <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                                <Image
-                                    src={URL.createObjectURL(file)}
-                                    alt={`Preview ${index + 1}`}
-                                    fill
-                                    className="object-cover"
-                                />
+                            <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                                {file.type.startsWith('image/') ? (
+                                    <Image
+                                        src={URL.createObjectURL(file)}
+                                        alt={`Preview ${index + 1}`}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                ) : (
+                                    <video
+                                        src={URL.createObjectURL(file)}
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
                             </div>
                             <button
                                 type="button"
                                 onClick={() => removeImage(index)}
-                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
-                                title="Remove image"
+                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600 z-10"
+                                title="Remove file"
                             >
                                 <X size={16} />
                             </button>

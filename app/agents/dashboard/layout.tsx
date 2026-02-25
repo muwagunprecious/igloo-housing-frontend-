@@ -9,7 +9,8 @@ import {
     MessageSquare,
     Settings,
     LogOut,
-    Home
+    Home,
+    Users
 } from "lucide-react";
 import { useAuthStore } from "@/app/stores/useAuthStore";
 import { useEffect } from "react";
@@ -35,6 +36,7 @@ export default function AgentDashboardLayout({
         { name: "Overview", href: "/agents/dashboard", icon: LayoutDashboard },
         { name: "My Listings", href: "/agents/dashboard/listings", icon: List },
         { name: "Post New Property", href: "/agents/dashboard/listings/create", icon: PlusCircle },
+        { name: "Roommate Requests", href: "/agents/dashboard/roommates", icon: Users },
         { name: "Messages", href: "/agents/dashboard/messages", icon: MessageSquare },
         { name: "Settings", href: "/agents/dashboard/settings", icon: Settings },
     ];
@@ -75,10 +77,10 @@ export default function AgentDashboardLayout({
                 <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
                     <div className="flex items-center gap-3 px-4 py-3 mb-2">
                         <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold">
-                            {user.fullName?.[0]}
+                            {user.name?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{user.fullName}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
                             <p className="text-xs text-gray-500 truncate">{user.email}</p>
                         </div>
                     </div>

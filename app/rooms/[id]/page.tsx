@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, Share, Heart, MapPin, Wifi, Shield, Zap, Car, User, Camera, Users } from "lucide-react";
+import { Star, Share, Heart, MapPin, Wifi, Shield, Zap, Car, User, Camera, Users, X } from "lucide-react";
 import Image from "next/image";
 import Button from "@/app/components/common/Button";
 import BackButton from "@/app/components/common/BackButton";
@@ -8,6 +8,7 @@ import MapPlaceholder from "@/app/components/features/MapPlaceholder";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { toast } from "@/app/stores/useToastStore";
 import { usePropertyStore } from "@/app/stores/usePropertyStore";
 import { useRoommateStore } from "@/app/stores/useRoommateStore";
 import { useAuthStore } from "@/app/stores/useAuthStore";
@@ -20,6 +21,11 @@ export default function PropertyDetails() {
     const { createRequest, isLoading: isRequesting } = useRoommateStore();
     const { isAuthenticated } = useAuthStore();
     const [requestSent, setRequestSent] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalData, setModalData] = useState({
+        budget: "",
+        bio: ""
+    });
 
     useEffect(() => {
         if (id) {
@@ -27,16 +33,29 @@ export default function PropertyDetails() {
         }
     }, [id, fetchProperty]);
 
-    const handleRoommateRequest = async () => {
+    const handleRoommateRequest = () => {
         if (!isAuthenticated) {
-            alert("Please login to request a roommate spot");
+            toast.info("Please login to request a roommate spot");
             return;
         }
-        const success = await createRequest(id);
+        setIsModalOpen(true);
+    };
+
+    const submitRoommateRequest = async () => {
+        setIsRequesting(true);
+        const success = await createRequest({
+            propertyId: id,
+            budget: modalData.budget || currentProperty?.price,
+            bio: modalData.bio || `I am interested in sharing ${currentProperty?.title}`
+        });
+        setIsRequesting(false);
+
         if (success) {
             setRequestSent(true);
+            setIsModalOpen(false);
+            toast.success("Roommate request sent!");
         } else {
-            alert("Failed to send request or request already exists");
+            toast.error("Failed to send request or request already exists");
         }
     };
 
@@ -242,6 +261,70 @@ export default function PropertyDetails() {
                     </div>
                 </div>
             </div>
+
+            {/* Roommate Request Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-xl font-bold">Roommate Request</h3>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <p className="text-gray-500 text-sm">
+                                Let others know what your budget is and a little bit about yourself to find the perfect roommate for this property.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold mb-2">My Budget (₦)</label>
+                                    <input
+                                        type="number"
+                                        value={modalData.budget}
+                                        onChange={(e) => setModalData({ ...modalData, budget: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                                        placeholder={`Default: ₦${property.price.toLocaleString()}`}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold mb-2">Short Bio / Preference</label>
+                                    <textarea
+                                        value={modalData.bio}
+                                        onChange={(e) => setModalData({ ...modalData, bio: e.target.value })}
+                                        rows={4}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none"
+                                        placeholder="E.g. I'm a quiet student looking for someone who shares similar values..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 flex gap-3">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setIsModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                onClick={submitRoommateRequest}
+                                disabled={isRequesting}
+                            >
+                                {isRequesting ? "Sending..." : "Send Request"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

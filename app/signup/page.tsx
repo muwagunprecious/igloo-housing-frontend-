@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/stores/useAuthStore";
+import { toast } from "@/app/stores/useToastStore";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, User, Home } from "lucide-react";
 import Link from "next/link";
@@ -48,9 +49,10 @@ function SignupForm() {
         // Simulate network delay
         await new Promise((resolve) => setTimeout(resolve, 800));
 
-        const result = await register(fullName, email, password, "STUDENT", selectedUniversity);
+        const result = await register(fullName, email, password, "student" as any, selectedUniversity);
 
         if (result.success) {
+            toast.success("Account created successfully!");
             if (result.redirectTo) {
                 router.push(result.redirectTo);
             } else {
@@ -58,6 +60,7 @@ function SignupForm() {
             }
         } else {
             setError(result.error || "Signup failed");
+            toast.error(result.error || "Signup failed");
             setIsLoading(false);
         }
     };

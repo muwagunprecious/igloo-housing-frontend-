@@ -8,7 +8,7 @@ export default function FilterBar() {
     const [selectedCategory, setSelectedCategory] = useState("All");
 
     return (
-        <div className="fixed top-[80px] w-full bg-white z-40 shadow-sm md:shadow-none pt-4 pb-2">
+        <div className="bg-white pt-4 pb-2">
             <div className="max-w-[2520px] mx-auto xl:px-20 md:px-10 sm:px-2 px-4 flex flex-row items-center justify-between gap-8">
                 {/* Categories List */}
                 <div className="flex-1 flex flex-row items-center justify-between overflow-x-auto gap-8 hide-scrollbar pb-2">

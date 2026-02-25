@@ -4,26 +4,26 @@ import { useEffect, useState } from "react";
 import { useAdminStore } from "@/app/stores/useAdminStore";
 import {
     Search,
-    Shield,
     BadgeCheck,
     Mail,
-    Calendar,
     User,
     CheckCircle2,
     XCircle,
-    Info
+    Info,
+    AlertTriangle
 } from "lucide-react";
-import Button from "@/app/components/common/Button";
 import Image from "next/image";
 import { getImageUrl } from "@/app/lib/imageUrl";
 import Link from "next/link";
 
 export default function AgentVerificationPage() {
-    const { users, isLoading, fetchUsers, verifyAgent } = useAdminStore();
+    const { users, isLoading, fetchUsers, verifyAgent, rejectAgent } = useAdminStore();
     const [search, setSearch] = useState("");
+    const [rejectingId, setRejectingId] = useState<string | null>(null);
+    const [rejectReason, setRejectReason] = useState("");
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     useEffect(() => {
-        // Fetch users who are AGENTS and NOT verified
         fetchUsers({ role: "AGENT", isVerified: "false" });
     }, [fetchUsers]);
 
@@ -35,8 +35,24 @@ export default function AgentVerificationPage() {
 
     const handleVerify = async (id: string, name: string) => {
         if (confirm(`Are you sure you want to verify ${name} as a platform agent?`)) {
+            setProcessingId(id);
             await verifyAgent(id);
+            setProcessingId(null);
         }
+    };
+
+    const handleRejectClick = (id: string) => {
+        setRejectingId(id);
+        setRejectReason("");
+    };
+
+    const handleRejectConfirm = async () => {
+        if (!rejectingId) return;
+        setProcessingId(rejectingId);
+        await rejectAgent(rejectingId, rejectReason || "Application does not meet requirements");
+        setRejectingId(null);
+        setRejectReason("");
+        setProcessingId(null);
     };
 
     return (
@@ -136,18 +152,78 @@ export default function AgentVerificationPage() {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => handleVerify(agent.id, agent.fullName)}
-                                className="flex-1 bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary transition-all duration-300 shadow-xl shadow-black/10 flex items-center justify-center gap-2"
+                                disabled={processingId === agent.id}
+                                className="flex-1 bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary transition-all duration-300 shadow-xl shadow-black/10 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <BadgeCheck size={18} />
+                                {processingId === agent.id ? (
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <BadgeCheck size={18} />
+                                )}
                                 Verify Agent
                             </button>
-                            <button className="w-14 items-center justify-center flex bg-gray-50 border border-gray-100 text-gray-400 rounded-2xl hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all duration-300">
+                            <button
+                                onClick={() => handleRejectClick(agent.id)}
+                                disabled={processingId === agent.id}
+                                className="w-14 items-center justify-center flex bg-gray-50 border border-gray-100 text-gray-400 rounded-2xl hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all duration-300 disabled:opacity-50"
+                                title="Reject application"
+                            >
                                 <XCircle size={20} />
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
+
+            {/* Reject Confirmation Modal */}
+            {rejectingId && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                                <AlertTriangle size={24} className="text-red-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900">Reject Application</h3>
+                                <p className="text-gray-500 text-sm">This will revert the user back to a student account.</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
+                                Reason for rejection (optional)
+                            </label>
+                            <textarea
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                placeholder="e.g. Insufficient documentation, unable to verify identity..."
+                                className="w-full border border-gray-200 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-300 h-28 resize-none"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setRejectingId(null)}
+                                className="flex-1 py-4 rounded-2xl border border-gray-200 font-black text-xs uppercase tracking-widest hover:bg-gray-50 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleRejectConfirm}
+                                disabled={!!processingId}
+                                className="flex-1 py-4 rounded-2xl bg-red-500 text-white font-black text-xs uppercase tracking-widest hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {processingId ? (
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <XCircle size={16} />
+                                )}
+                                Confirm Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Navigation back to User Control */}
             <div className="flex justify-center pt-8">

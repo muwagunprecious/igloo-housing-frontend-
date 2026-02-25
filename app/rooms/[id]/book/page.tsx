@@ -25,7 +25,25 @@ export default function BookingPage() {
     ];
 
     const selectedDuration = durations.find((d) => d.value === duration);
-    const totalAmount = property.price * (selectedDuration?.months || 6);
+    const totalAmount = (property?.price || 0) * (selectedDuration?.months || 6);
+
+    // Handle case when property is not found
+    if (!property) {
+        return (
+            <AuthGuard>
+                <div className="max-w-[800px] mx-auto px-4 pt-6 pb-20">
+                    <BackButton />
+                    <div className="text-center mt-20">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Property Not Found</h1>
+                        <p className="text-gray-600 mb-6">The property you're looking for doesn't exist or is no longer available.</p>
+                        <Button onClick={() => router.push("/search")} size="lg">
+                            Browse Properties
+                        </Button>
+                    </div>
+                </div>
+            </AuthGuard>
+        );
+    }
 
     const handleProceedToPayment = () => {
         setPropertyId(property.id);

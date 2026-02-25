@@ -1,18 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutDashboard, Building2, Heart, MessageSquare, Receipt, User, Settings, Bell, CreditCard } from "lucide-react";
+import { Home, LayoutDashboard, Building2, Heart, MessageSquare, Receipt, User, Settings, Bell, CreditCard, Users } from "lucide-react";
+import { useAuthStore } from "@/app/stores/useAuthStore";
 
 export default function DashboardSidebar() {
+    const { user } = useAuthStore();
     const pathname = usePathname();
+    const [currentHash, setCurrentHash] = useState("");
+
+    useEffect(() => {
+        setCurrentHash(window.location.hash);
+        const handleHashChange = () => setCurrentHash(window.location.hash);
+        window.addEventListener("hashchange", handleHashChange);
+        return () => window.removeEventListener("hashchange", handleHashChange);
+    }, []);
 
     const mainLinks = [
         { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-        { label: "My Houses", href: "/my-houses", icon: Building2 },
-        { label: "Wishlists", href: "/favorites", icon: Heart },
+        { label: "My Houses", href: "/my-houses", icon: Building2, studentOnly: true },
+        { label: "Find Roommates", href: "/roommates", icon: Users, studentOnly: true },
+        { label: "Wishlists", href: "/favorites", icon: Heart, studentOnly: true },
         { label: "Messages", href: "/chat", icon: MessageSquare },
-        { label: "Transactions", href: "/dashboard#transactions", icon: Receipt },
+        { label: "Transactions", href: "/dashboard#payments", icon: Receipt },
     ];
 
     const settingsLinks = [
@@ -22,11 +34,14 @@ export default function DashboardSidebar() {
         { label: "Notifications", href: "/dashboard#notifications", icon: Bell },
     ];
 
+    const filteredMainLinks = mainLinks.filter(link => !link.studentOnly || user?.role === 'student');
+
     const isActive = (href: string) => {
         if (href.includes("#")) {
-            return pathname === href.split("#")[0];
+            const [base, hash] = href.split("#");
+            return pathname === base && currentHash === `#${hash}`;
         }
-        return pathname === href;
+        return pathname === href && currentHash === "";
     };
 
     return (
@@ -38,11 +53,11 @@ export default function DashboardSidebar() {
                         Main
                     </h3>
                     <nav className="space-y-1">
-                        {mainLinks.map((link) => (
+                        {filteredMainLinks.map((link) => (
                             <Link key={link.href} href={link.href}>
                                 <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${isActive(link.href)
-                                        ? 'bg-gray-100 text-black font-semibold'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                    ? 'bg-gray-100 text-black font-semibold'
+                                    : 'text-gray-600 hover:bg-gray-50'
                                     }`}>
                                     <link.icon size={20} />
                                     <span className="text-sm">{link.label}</span>
@@ -61,8 +76,8 @@ export default function DashboardSidebar() {
                         {settingsLinks.map((link) => (
                             <Link key={link.href} href={link.href}>
                                 <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${isActive(link.href)
-                                        ? 'bg-gray-100 text-black font-semibold'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                    ? 'bg-gray-100 text-black font-semibold'
+                                    : 'text-gray-600 hover:bg-gray-50'
                                     }`}>
                                     <link.icon size={20} />
                                     <span className="text-sm">{link.label}</span>

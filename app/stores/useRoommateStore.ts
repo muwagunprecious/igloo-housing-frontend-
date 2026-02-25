@@ -11,28 +11,30 @@ export interface RoommateRequest {
     roomType: string | null;
     genderPref: string | null;
     bio: string | null;
+    houseLink: string | null;
+    media: string | null; // JSON string
     user: {
         id: string;
         fullName: string;
-        avatar?: string;
-        bio?: string;
+        avatar: string | null;
     };
-    property?: { // Optional now
+    property?: {
         id: string;
         title: string;
         location: string;
-        price: number;
-        images: string; // JSON string from backend
+        images: string;
     };
 }
 
 interface RoommateStore {
     requests: RoommateRequest[];
     feed: RoommateRequest[];
+    agentRequests: RoommateRequest[];
     isLoading: boolean;
     error: string | null;
     fetchMyRequests: () => Promise<void>;
     fetchFeed: (filters?: any) => Promise<void>;
+    fetchAgentRequests: () => Promise<void>;
     createRequest: (data: any) => Promise<boolean>;
     deleteRequest: (id: string) => Promise<boolean>;
 }
@@ -40,6 +42,7 @@ interface RoommateStore {
 export const useRoommateStore = create<RoommateStore>((set) => ({
     requests: [],
     feed: [],
+    agentRequests: [],
     isLoading: false,
     error: null,
 
@@ -59,6 +62,16 @@ export const useRoommateStore = create<RoommateStore>((set) => ({
             const params = new URLSearchParams(filters).toString();
             const response = await api.get(`/roommate/feed?${params}`);
             set({ feed: response.data.data, isLoading: false });
+        } catch (error: any) {
+            set({ error: error.message, isLoading: false });
+        }
+    },
+
+    fetchAgentRequests: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await api.get('/roommate/agent/requests');
+            set({ agentRequests: response.data.data, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { bookings, transactions, recentChats } from "@/app/data/dashboard";
 import { useFavoritesStore } from "@/app/stores/useFavoritesStore";
 import { useViewHistoryStore } from "@/app/stores/useViewHistoryStore";
@@ -11,7 +11,9 @@ import PropertyCard from "@/app/components/features/PropertyCard";
 import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
 import SecuritySection from "./components/SecuritySection";
 import NotificationsSection from "./components/NotificationsSection";
-import { User, Settings, Bell, Shield, CreditCard, Heart, Home, MessageSquare, Receipt, Calendar } from "lucide-react";
+import PersonalInfoSection from "./components/PersonalInfoSection";
+import { User, Settings, Bell, Shield, CreditCard, Heart, Home, MessageSquare, Receipt, Calendar, Users } from "lucide-react";
+import { useRoommateStore } from "@/app/stores/useRoommateStore";
 import Button from "@/app/components/common/Button";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,6 +21,7 @@ import { getImageUrl } from "@/app/lib/imageUrl";
 
 export default function Dashboard() {
     const { user } = useAuthStore();
+    const router = useRouter();
     const [currentHash, setCurrentHash] = useState("");
 
     const favorites = useFavoritesStore((state) => state.favorites);
@@ -29,15 +32,27 @@ export default function Dashboard() {
     const activeBookings = bookings.filter((b) => b.status === "Active");
 
     useEffect(() => {
+        if (user?.role === 'admin') {
+            router.replace('/admin/dashboard');
+        } else if (user?.role === 'agent') {
+            router.replace('/agents/dashboard');
+        }
+    }, [user?.role, router]);
+
+    useEffect(() => {
         // Handle hash navigation
         const handleHashChange = () => {
-            setCurrentHash(window.location.hash);
+            const hash = window.location.hash;
+            console.log('--- HASH CHANGE DETECTED ---', hash);
+            setCurrentHash(hash);
             // Scroll to top when hash changes
             window.scrollTo(0, 0);
         };
 
         // Set initial hash
-        setCurrentHash(window.location.hash);
+        const initialHash = window.location.hash;
+        console.log('--- INITIAL HASH ---', initialHash);
+        setCurrentHash(initialHash);
 
         window.addEventListener("hashchange", handleHashChange);
         return () => window.removeEventListener("hashchange", handleHashChange);
@@ -50,6 +65,7 @@ export default function Dashboard() {
             case "#notifications":
                 return <NotificationsSection />;
             case "#payments":
+            case "#transactions":
                 return (
                     <section className="animate-in fade-in slide-in-from-bottom-4">
                         <div className="flex items-center gap-2 mb-6">
@@ -82,36 +98,93 @@ export default function Dashboard() {
                         </div>
                     </section>
                 );
-            case "#personal":
+            case "#roommates":
+                const { requests, agentRequests, fetchMyRequests, fetchAgentRequests, isLoading: roommatesLoading } = useRoommateStore();
+
+                useEffect(() => {
+                    if (user?.role === 'agent') {
+                        fetchAgentRequests();
+                    } else {
+                        fetchMyRequests();
+                    }
+                }, [user?.role]);
+
+                const displayRequests = user?.role === 'agent' ? agentRequests : requests;
+
                 return (
-                    <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4">
-                        <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
-                            <User className="text-primary" size={24} />
-                            <h2 className="text-2xl font-bold">Personal Information</h2>
+                    <section className="animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <Users className="text-primary" size={24} />
+                                <h2 className="text-2xl font-bold">Roommate Requests</h2>
+                            </div>
+                            <Link href="/roommates">
+                                <Button variant="outline" size="sm">Find More</Button>
+                            </Link>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-500 mb-1">Full Name</label>
-                                <p className="text-lg font-medium text-gray-900">{user?.name || "N/A"}</p>
+
+                        {roommatesLoading ? (
+                            <div className="py-20 text-center">Loading requests...</div>
+                        ) : displayRequests.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {displayRequests.map((req) => (
+                                    <div key={req.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="relative w-12 h-12">
+                                                <Image
+                                                    src={req.user.avatar || "/placeholder-avatar.png"}
+                                                    alt={req.user.fullName}
+                                                    fill
+                                                    className="rounded-full object-cover"
+                                                />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold">{req.user.fullName}</h3>
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${req.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                                    {req.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {req.property && (
+                                            <div className="mb-4 p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                                                <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                                    <Image
+                                                        src={getImageUrl(JSON.parse(req.property.images)[0])}
+                                                        alt={req.property.title}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-bold truncate">{req.property.title}</p>
+                                                    <p className="text-[10px] text-gray-500 truncate">{req.property.location}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <p className="text-sm text-gray-600 mb-4 line-clamp-2 italic">"{req.bio}"</p>
+                                        <div className="flex justify-between items-center pt-4 border-t border-gray-100 text-sm">
+                                            <span className="font-bold text-primary">Budget: ₦{req.budget?.toLocaleString()}</span>
+                                            <Link href={`/chat?userId=${req.userId}`}>
+                                                <Button size="sm">Message</Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-500 mb-1">Email Address</label>
-                                <p className="text-lg font-medium text-gray-900">{user?.email || "N/A"}</p>
+                        ) : (
+                            <div className="text-center py-20 bg-white border border-dashed border-gray-300 rounded-2xl">
+                                <Users className="mx-auto mb-4 text-gray-400" size={48} />
+                                <h3 className="text-lg font-bold">No roommate requests</h3>
+                                <p className="text-gray-500 mb-6">You haven't posted any roommate requests yet.</p>
+                                <Link href="/roommates">
+                                    <Button>Post a Request</Button>
+                                </Link>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-500 mb-1">Account Role</label>
-                                <p className="text-lg font-medium text-gray-900 capitalize">{user?.role || "N/A"}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-500 mb-1">Account Status</label>
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                                    <p className="text-lg font-medium text-gray-900">Active</p>
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </section>
                 );
+            case "#personal":
+                return <PersonalInfoSection />;
             default:
                 return (
                     <>
@@ -261,6 +334,7 @@ export default function Dashboard() {
                                 {[
                                     { icon: User, label: "Personal info", desc: "Manage your profile", href: "#personal" },
                                     { icon: Shield, label: "Security", desc: "Change password", href: "#security" },
+                                    { icon: Users, label: "Roommates", desc: "My roommate requests", href: "#roommates" },
                                     { icon: CreditCard, label: "Payments", desc: "Review transactions", href: "#transactions" },
                                     { icon: Bell, label: "Notifications", desc: "Update alerts", href: "#notifications" },
                                 ].map((link) => (
@@ -306,8 +380,9 @@ export default function Dashboard() {
                                     {currentHash === "" ? "Dashboard" :
                                         currentHash === "#security" ? "Security Settings" :
                                             currentHash === "#notifications" ? "Your Notifications" :
-                                                currentHash === "#transactions" ? "Transactions" :
-                                                    currentHash === "#personal" ? "Personal Details" : "Account Settings"}
+                                                (currentHash === "#payments" || currentHash === "#transactions") ? "Transactions" :
+                                                    currentHash === "#roommates" ? "Roommate Requests" :
+                                                        currentHash === "#personal" ? "Personal Details" : "Account Settings"}
                                 </h1>
                                 <div className="flex flex-wrap items-center gap-4 text-sm font-bold">
                                     <div className="flex items-center gap-1.5 text-gray-700">

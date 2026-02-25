@@ -100,7 +100,7 @@ export default function EnhancedNavbar() {
                                             <div className="relative w-8 h-8">
                                                 <Image
                                                     src={user.avatar}
-                                                    alt={user.fullName || user.name || "User"}
+                                                    alt={user.name || "User"}
                                                     fill
                                                     className="rounded-full object-cover"
                                                 />
@@ -118,18 +118,24 @@ export default function EnhancedNavbar() {
                                         <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                                         <div className="absolute right-0 top-14 w-56 bg-white rounded-2xl shadow-floating border border-gray-200 py-2 z-50">
                                             <div className="px-4 py-3 border-b border-gray-200">
-                                                <p className="font-semibold text-sm">{user?.fullName || user?.name}</p>
+                                                <p className="font-semibold text-sm">{user?.name}</p>
                                                 <p className="text-xs text-gray-500">{user?.email}</p>
                                             </div>
 
                                             {authenticatedMenuItems.map((item) => {
                                                 // Skip student-only items for agents
-                                                if (item.studentOnly && user?.role === 'AGENT') return null;
+                                                if (item.studentOnly && user?.role === 'agent') return null;
+
+                                                let href = item.href;
+                                                if (item.label === "Dashboard") {
+                                                    if (user?.role === 'admin') href = "/admin/dashboard";
+                                                    else if (user?.role === 'agent') href = "/agents/dashboard";
+                                                }
 
                                                 return (
                                                     <Link
                                                         key={item.href}
-                                                        href={item.href}
+                                                        href={href}
                                                         className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition"
                                                         onClick={() => setShowMenu(false)}
                                                     >
@@ -139,18 +145,7 @@ export default function EnhancedNavbar() {
                                                 );
                                             })}
 
-                                            {/* Agent Dashboard Link (agents only) */}
-                                            {user?.role === 'AGENT' && (
-                                                <Link
-                                                    href="/agents/dashboard"
-                                                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition"
-                                                    onClick={() => setShowMenu(false)}
-                                                >
-                                                    <Building2 size={16} />
-                                                    Agent Dashboard
-                                                </Link>
-                                            )}
-
+                                            {/* Remainder of the secondary items border and logout button */}
                                             <div className="border-t border-gray-200 my-2"></div>
                                             <button
                                                 onClick={() => {
@@ -206,13 +201,19 @@ export default function EnhancedNavbar() {
                             ) : (
                                 <>
                                     {authenticatedMenuItems.map((item) => {
-                                        if (item.studentOnly && user?.role === 'AGENT') return null;
+                                        if (item.studentOnly && user?.role === 'agent') return null;
+
+                                        let href = item.href;
+                                        if (item.label === "Dashboard") {
+                                            if (user?.role === 'admin') href = "/admin/dashboard";
+                                            else if (user?.role === 'agent') href = "/agents/dashboard";
+                                        }
 
                                         return (
-                                            <Link key={item.href} href={item.href} onClick={() => setShowMobileMenu(false)}>
-                                                <div className={`px-4 py-3 rounded-xl text-sm font-semibold transition flex items-center gap-3 ${isActive(item.href)
-                                                        ? 'bg-gray-100 text-black'
-                                                        : 'text-gray-600 hover:bg-gray-50'
+                                            <Link key={item.href} href={href} onClick={() => setShowMobileMenu(false)}>
+                                                <div className={`px-4 py-3 rounded-xl text-sm font-semibold transition flex items-center gap-3 ${isActive(href)
+                                                    ? 'bg-gray-100 text-black'
+                                                    : 'text-gray-600 hover:bg-gray-50'
                                                     }`}>
                                                     {item.icon && <item.icon size={20} />}
                                                     {item.label}
@@ -220,14 +221,6 @@ export default function EnhancedNavbar() {
                                             </Link>
                                         );
                                     })}
-                                    {user?.role === 'AGENT' && (
-                                        <Link href="/agents/dashboard" onClick={() => setShowMobileMenu(false)}>
-                                            <div className="px-4 py-3 rounded-xl text-sm font-semibold transition flex items-center gap-3 text-gray-600 hover:bg-gray-50">
-                                                <Building2 size={20} />
-                                                Agent Dashboard
-                                            </div>
-                                        </Link>
-                                    )}
                                     <div className="border-t border-gray-200 my-2"></div>
                                     <button
                                         onClick={() => {

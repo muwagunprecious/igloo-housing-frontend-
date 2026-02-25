@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/app/stores/useAuthStore";
+import { toast } from "@/app/stores/useToastStore";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Home } from "lucide-react";
 import Link from "next/link";
@@ -32,6 +33,7 @@ function LoginForm() {
         const result = await login(email, password);
 
         if (result.success) {
+            toast.success("Welcome back!");
             if (redirectPath) {
                 router.push(decodeURIComponent(redirectPath));
             } else if (result.redirectTo) {
@@ -41,6 +43,7 @@ function LoginForm() {
             }
         } else {
             setError(result.error || "Login failed");
+            toast.error(result.error || "Login failed");
             setIsLoading(false);
         }
     };

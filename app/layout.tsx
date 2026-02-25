@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import BottomNav from "./components/layout/BottomNav";
 import EnhancedNavbar from "./components/layout/EnhancedNavbar";
+import ToastContainer from "./components/common/Toast";
 
 export const metadata: Metadata = {
   title: "IGLOO - Student Housing Marketplace",
@@ -21,6 +22,7 @@ export default function RootLayout({
           {children}
         </main>
         <BottomNav />
+        <ToastContainer />
       </body>
     </html>
   );

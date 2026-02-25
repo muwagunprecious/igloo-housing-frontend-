@@ -1,11 +1,42 @@
 "use client";
 
-import { Search, Globe, Menu, User } from "lucide-react";
+import { Search, Globe, Menu, User, LogOut, LayoutDashboard, Heart, Users } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useAuthStore } from "@/app/stores/useAuthStore";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { getImageUrl } from "@/app/lib/imageUrl";
 
 export default function Navbar() {
     const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const { user, isAuthenticated, logout } = useAuthStore();
+    const router = useRouter();
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleLogout = () => {
+        logout();
+        setShowMenu(false);
+        router.push("/");
+    };
+
+    const getDashboardLink = () => {
+        if (!user) return "/login";
+        if (user.role === "admin") return "/admin/dashboard";
+        if (user.role === "agent") return "/agents/dashboard";
+        return "/dashboard";
+    };
 
     return (
         <header className="fixed top-0 w-full z-50 bg-white border-b border-gray-200">
@@ -50,40 +81,136 @@ export default function Navbar() {
 
                     {/* User Menu */}
                     <div className="flex flex-row items-center gap-3">
-                        <div className="hidden md:block text-sm font-semibold py-3 px-4 rounded-full hover:bg-gray-100 transition cursor-pointer">
-                            Igloo your home
-                        </div>
+                        {/* "Igloo your home" — only show for agents/non-authenticated */}
+                        {(!isAuthenticated || user?.role === "agent") && (
+                            <Link
+                                href={isAuthenticated ? "/agents/dashboard" : "/signup/agent"}
+                                className="hidden md:block text-sm font-semibold py-3 px-4 rounded-full hover:bg-gray-100 transition cursor-pointer"
+                            >
+                                Igloo your home
+                            </Link>
+                        )}
                         <div className="hidden md:block p-3 rounded-full hover:bg-gray-100 transition cursor-pointer">
                             <Globe size={18} />
                         </div>
-                        <div className="relative">
+                        <div className="relative" ref={menuRef}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
                                 className="p-4 md:py-1 md:px-2 border border-gray-300 rounded-full flex flex-row items-center gap-3 hover:shadow-md transition cursor-pointer"
                             >
                                 <Menu size={18} />
                                 <div className="hidden md:block">
-                                    <div className="bg-gray-500 rounded-full p-1 text-white">
-                                        <User size={18} className="fill-current relative top-[2px]" />
-                                    </div>
+                                    {isAuthenticated && user?.avatar ? (
+                                        <div className="w-8 h-8 rounded-full overflow-hidden relative">
+                                            <Image
+                                                src={getImageUrl(user.avatar)}
+                                                alt={user.name}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-500 rounded-full p-1 text-white">
+                                            <User size={18} className="fill-current relative top-[2px]" />
+                                        </div>
+                                    )}
                                 </div>
                             </button>
 
                             {showMenu && (
-                                <div className="absolute right-0 top-14 w-56 bg-white rounded-2xl shadow-floating border border-gray-200 py-2 z-50">
-                                    <Link href="/favorites" className="block px-4 py-3 hover:bg-gray-50 transition">
-                                        Wishlists
-                                    </Link>
-                                    <Link href="/roommates" className="block px-4 py-3 hover:bg-gray-50 transition">
-                                        Find Roommates
-                                    </Link>
-                                    <Link href="/dashboard" className="block px-4 py-3 hover:bg-gray-50 transition">
-                                        Account
-                                    </Link>
-                                    <div className="border-t border-gray-200 my-2"></div>
-                                    <button className="block w-full text-left px-4 py-3 hover:bg-gray-50 transition">
-                                        Log out
-                                    </button>
+                                <div className="absolute right-0 top-14 w-60 bg-white rounded-2xl shadow-floating border border-gray-200 py-2 z-50">
+                                    {isAuthenticated && user ? (
+                                        <>
+                                            {/* User Info */}
+                                            <div className="px-4 py-3 border-b border-gray-100">
+                                                <p className="font-semibold text-sm text-gray-900 truncate">{user.name}</p>
+                                                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block capitalize ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                                        user.role === 'agent' ? 'bg-green-100 text-green-700' :
+                                                            'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {user.role}
+                                                </span>
+                                            </div>
+
+                                            {/* Dashboard Link */}
+                                            <Link
+                                                href={getDashboardLink()}
+                                                onClick={() => setShowMenu(false)}
+                                                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                            >
+                                                <LayoutDashboard size={16} className="text-gray-500" />
+                                                Dashboard
+                                            </Link>
+
+                                            {/* Wishlists - only for students */}
+                                            {user.role === "student" && (
+                                                <Link
+                                                    href="/favorites"
+                                                    onClick={() => setShowMenu(false)}
+                                                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                                >
+                                                    <Heart size={16} className="text-gray-500" />
+                                                    Wishlists
+                                                </Link>
+                                            )}
+
+                                            {/* Find Roommates - for students */}
+                                            {user.role === "student" && (
+                                                <Link
+                                                    href="/roommates"
+                                                    onClick={() => setShowMenu(false)}
+                                                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                                >
+                                                    <Users size={16} className="text-gray-500" />
+                                                    Find Roommates
+                                                </Link>
+                                            )}
+
+                                            <div className="border-t border-gray-200 my-2"></div>
+
+                                            {/* Logout */}
+                                            <button
+                                                onClick={handleLogout}
+                                                className="flex items-center gap-3 w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 transition text-sm font-semibold"
+                                            >
+                                                <LogOut size={16} />
+                                                Log out
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Link
+                                                href="/login"
+                                                onClick={() => setShowMenu(false)}
+                                                className="block px-4 py-3 hover:bg-gray-50 transition font-semibold text-sm"
+                                            >
+                                                Log in
+                                            </Link>
+                                            <Link
+                                                href="/signup"
+                                                onClick={() => setShowMenu(false)}
+                                                className="block px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                            >
+                                                Sign up
+                                            </Link>
+                                            <div className="border-t border-gray-200 my-2"></div>
+                                            <Link
+                                                href="/favorites"
+                                                onClick={() => setShowMenu(false)}
+                                                className="block px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                            >
+                                                Wishlists
+                                            </Link>
+                                            <Link
+                                                href="/roommates"
+                                                onClick={() => setShowMenu(false)}
+                                                className="block px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                            >
+                                                Find Roommates
+                                            </Link>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
